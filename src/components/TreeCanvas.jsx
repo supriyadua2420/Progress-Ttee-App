@@ -14,23 +14,25 @@ export default function TreeCanvas() {
   const containerRef = useRef(null);
   const [nodes, setNodes] = useState(initialNodes);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
+  const [draggingNode, setDraggingNode] = useState(null);
 
   const handleMouseDown = (e, node) => {
     setSelectedNodeId(node);
+    setDraggingNode(node);
   };
 
   const handleMouseMove = (e) => {
-    if (!selectedNodeId) return;
+    if (!draggingNode) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
     setNodes((prev) =>
-      prev.map((n) => (n.id === selectedNodeId.id ? { ...n, x, y } : n))
+      prev.map((n) => (n.id === draggingNode.id ? { ...n, x, y } : n))
     );
   };
 
-  const handleMouseUp = () => setSelectedNodeId(null);
+  const handleMouseUp = () => setDraggingNode(null);
 
   const handleAddNode = () => {
     setNodes((prev) => {
