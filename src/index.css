@@ -1,0 +1,17 @@
+/* Force light theme */
+:root {
+  color-scheme: light; /* tells browser to use light mode for forms/scrollbars */
+}
+
+/* Background & text */
+body {
+  background-color: #ffffff; /* white background */
+  color: #000000;           /* black text */
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+/* Canvas */
+canvas {
+  background-color: #ffffff; /* light canvas background */
+}
