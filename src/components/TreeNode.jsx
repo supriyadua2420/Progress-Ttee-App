@@ -1,6 +1,7 @@
 import React from "react";
 
-const TreeNode = ({ node, isSelected, onClick, size = 50 }) => {
+const TreeNode = ({ node, isSelected, onClick, size = 100, isEditing, onStartEditing, onFinishEditing }) => {
+  const [tempLabel, setTempLabel] = React.useState(node.label);
   const style = {
     position: "absolute",
     left: `${node.x - size / 2}px`,
@@ -27,8 +28,34 @@ const TreeNode = ({ node, isSelected, onClick, size = 50 }) => {
   };
 
   return (
-    <div style={style} onMouseDown={(e) => onClick(e, node)}>
-      {node.label}
+    <div style={style} 
+        onMouseDown={(e) => onClick(e, node)}
+        onDoubleClick={onStartEditing}>
+
+      {isEditing ? (
+        <input
+          type="text"
+          value={tempLabel}
+          onChange={(e) => setTempLabel(e.target.value)}
+          onBlur={() => onFinishEditing(tempLabel)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              onFinishEditing(tempLabel);
+            }
+          }}
+          autoFocus
+          style={{
+            width: "80%",
+            border: "none",
+            borderRadius: "8px",
+            textAlign: "center",
+            outline: "none",
+            fontSize: "14px",
+          }}
+        />
+      ) : (
+        node.label
+      )}
     </div>
   );
 };
