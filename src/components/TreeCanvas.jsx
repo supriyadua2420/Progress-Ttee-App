@@ -1,13 +1,12 @@
-// src/TreeCanvas.js
 import React, { useRef, useState } from "react";
 import TreeNode from "./TreeNode.jsx";
 
 const initialNodes = [
-  { id: 1, label: "A", x: 400, y: 100, parentId: null },
-  { id: 2, label: "B", x: 250, y: 250, parentId: 1 },
-  { id: 3, label: "C", x: 550, y: 250, parentId: 1 },
-  { id: 4, label: "D", x: 200, y: 400, parentId: 2 },
-  { id: 5, label: "E", x: 300, y: 400, parentId: 2 },
+  { id: 1, label: "1", x: 400, y: 100, parentId: null },
+  { id: 2, label: "2", x: 250, y: 250, parentId: 1 },
+  { id: 3, label: "3", x: 550, y: 250, parentId: 1 },
+  { id: 4, label: "4", x: 200, y: 400, parentId: 2 },
+  { id: 5, label: "5", x: 300, y: 400, parentId: 2 },
 ];
 
 export default function TreeCanvas() {
@@ -42,13 +41,27 @@ export default function TreeCanvas() {
       const offsetY = 150;
       const newNode = {
         id: newId,
-        label: `N${newId}`,
+        label: `${newId}`,
         x: parent.x + offsetX,
         y: parent.y + offsetY,
         parentId: parent.id,
       };
       return [...prev, newNode];
     });
+  };
+
+  const handleDeleteNode = () => {
+    if (!selectedNodeId) return;
+
+    const parentId = selectedNodeId.parentId;
+
+    const children = nodes.filter(n => n.parentId === selectedNodeId.id);
+    children.forEach(child => child.parentId = parentId);
+
+    const updateNodes = nodes.filter(n => n.id !== selectedNodeId.id);
+    setNodes(updateNodes);
+    setSelectedNodeId(null);
+
   };
 
   return (
@@ -122,13 +135,22 @@ export default function TreeCanvas() {
         ))}
       </div>
 
-      {/* 🌸 Floating Add Button (now appears correctly) */}
+
+      {/* 🌸 Floating Button Group */}
+    <div
+      style={{
+        position: "absolute",
+        bottom: "30px",
+        right: "30px",
+        display: "flex",
+        gap: "12px", // space between buttons
+        zIndex: 10,
+      }}
+    >
+      {/* ➕ Add Node Button */}
       <button
         onClick={handleAddNode}
         style={{
-          position: "absolute",
-          bottom: "30px",
-          right: "30px",
           width: "60px",
           height: "60px",
           borderRadius: "50%",
@@ -139,7 +161,6 @@ export default function TreeCanvas() {
           lineHeight: "0",
           fontWeight: "bold",
           cursor: "pointer",
-          zIndex: 10,
           boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
           transition: "all 0.3s ease",
         }}
@@ -154,6 +175,38 @@ export default function TreeCanvas() {
       >
         +
       </button>
+
+      {/* 🩷 Delete Node Button */}
+      <button
+        onClick={handleDeleteNode}
+        style={{
+          width: "60px",
+          height: "60px",
+          borderRadius: "50%",
+          border: "none",
+          background: "linear-gradient(135deg, #ffb6c1, #ff9a9e)", // same as Add
+          color: "white",
+          fontSize: "26px",
+          lineHeight: "0",
+          fontWeight: "bold",
+          cursor: "pointer",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+          transition: "all 0.3s ease",
+        }}
+        onMouseOver={(e) => {
+          e.target.style.transform = "scale(1.1)";
+          e.target.style.boxShadow = "0 6px 18px rgba(255,154,158,0.5)";
+        }}
+        onMouseOut={(e) => {
+          e.target.style.transform = "scale(1)";
+          e.target.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+        }}
+      >
+        -
+      </button>
+
+    </div>
+
     </div>
   );
 }
