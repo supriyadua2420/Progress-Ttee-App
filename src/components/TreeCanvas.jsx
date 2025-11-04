@@ -14,6 +14,7 @@ export default function TreeCanvas() {
   const [nodes, setNodes] = useState(initialNodes);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [draggingNode, setDraggingNode] = useState(null);
+  const [editingNodeId, setEditingNodeId] = useState(null);
 
   const handleMouseDown = (e, node) => {
     setSelectedNodeId(node);
@@ -62,6 +63,14 @@ export default function TreeCanvas() {
     setNodes(updateNodes);
     setSelectedNodeId(null);
 
+  };
+
+  const handleRename = (nodeId, newLable) => {
+      setNodes((prev) =>
+        prev.map((n) => (n.id === nodeId ? {...n, label : newLable} : n))
+      );
+
+      setEditingNodeId(null);
   };
 
   return (
@@ -128,9 +137,12 @@ export default function TreeCanvas() {
           <TreeNode
             key={node.id}
             node={node}
-            size={50}
+            size={100}
             isSelected={selectedNodeId && selectedNodeId.id === node.id}
             onClick={handleMouseDown}
+            isEditing={editingNodeId === node.id}
+            onStartEditing={() => setEditingNodeId(node.id)}
+            onFinishEditing={(newLabel) => handleRename(node.id, newLabel)}
           />
         ))}
       </div>
