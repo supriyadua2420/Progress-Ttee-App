@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import TreeNode from "./TreeNode.jsx";
 
 const initialNodes = [
@@ -11,10 +11,36 @@ const initialNodes = [
 
 export default function TreeCanvas() {
   const containerRef = useRef(null);
-  const [nodes, setNodes] = useState(initialNodes);
+  const [nodes, setNodes] = useState(initialNodes ?? []);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [draggingNode, setDraggingNode] = useState(null);
   const [editingNodeId, setEditingNodeId] = useState(null);
+
+  useEffect(() => {
+    const fetchNodes = async () => {
+      try {
+
+        const res = await fetch("http://localhost:8000/nodes");
+        const data = await res.json();
+        console.log("Fetched nodes:", data);
+        const formatted = data.map( n => ({
+          id: Number(n.id),
+          label: n.label,
+          parentId : n.parent_id ? Number(n.parent_id) : null,
+          x: n.x ?? Math.random() * 800,
+          y: n.y ?? Math.random() * 600,
+        }));
+        setNodes(formatted);
+        console.log("Formatted nodes:", formatted);
+
+      } catch (error) {
+        console.error("Error fetching nodes:", error);
+      }
+    };
+
+    fetchNodes();
+
+  }, []);
 
   const handleMouseDown = (e, node) => {
     setSelectedNodeId(node);
@@ -137,7 +163,7 @@ export default function TreeCanvas() {
           <TreeNode
             key={node.id}
             node={node}
-            size={100}
+            size={90}
             isSelected={selectedNodeId && selectedNodeId.id === node.id}
             onClick={handleMouseDown}
             isEditing={editingNodeId === node.id}

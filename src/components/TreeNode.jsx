@@ -1,6 +1,6 @@
 import React from "react";
 
-const TreeNode = ({ node, isSelected, onClick, size = 100, isEditing, onStartEditing, onFinishEditing }) => {
+const TreeNode = ({ node, isSelected, onClick, size = 70, isEditing, onStartEditing, onFinishEditing }) => {
   const [tempLabel, setTempLabel] = React.useState(node.label);
   const style = {
     position: "absolute",
