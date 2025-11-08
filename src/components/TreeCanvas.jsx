@@ -78,7 +78,6 @@ export default function TreeCanvas() {
   // update UI first
   setNodes((prev) => [...prev, newNode]);
 
-  // send POST request
   fetch("http://localhost:8000/nodes", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -96,7 +95,7 @@ export default function TreeCanvas() {
   const handleDeleteNode = () => {
     if (!selectedNodeId) return;
 
-     fetch(`http://localhost:8000/nodes/${String(selectedNodeId.id)}`, {
+    fetch(`http://localhost:8000/nodes/${String(selectedNodeId.id)}`, {
       method: "DELETE",
     }).catch((err) => console.error("Error deleting node:", err));
 
@@ -116,9 +115,23 @@ export default function TreeCanvas() {
 
   };
 
-  const handleRename = (nodeId, newLable) => {
+  const handleRename = (nodeId, newLabel) => {
+
+    const parentId = nodes.find(n => n.id === nodeId)?.parentId;
+    fetch(`http://localhost:8000/nodes/${String(selectedNodeId.id)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: String(nodeId),
+        label: newLabel,
+        parent_id: parentId !== null ? String(parentId) : null,
+        // x: newNode.x,
+        // y: newNode.y,
+      }),
+    }).catch((err) => console.error("Error updating node:", err));
+
       setNodes((prev) =>
-        prev.map((n) => (n.id === nodeId ? {...n, label : newLable} : n))
+        prev.map((n) => (n.id === nodeId ? {...n, label : newLabel} : n))
       );
 
       setEditingNodeId(null);
