@@ -60,22 +60,45 @@ export default function TreeCanvas() {
 
   const handleMouseUp = () => setDraggingNode(null);
 
-  const handleAddNode = () => {
-    setNodes((prev) => {
-      const newId = prev.length ? Math.max(...prev.map((n) => n.id)) + 1 : 1;
-      const parent = selectedNodeId || prev[0];
-      const offsetX = Math.random() * 150 - 75;
-      const offsetY = 150;
-      const newNode = {
-        id: newId,
-        label: `${newId}`,
-        x: parent.x + offsetX,
-        y: parent.y + offsetY,
-        parentId: parent.id,
-      };
-      return [...prev, newNode];
-    });
+ const handleAddNode = () => {
+  const newId = nodes.length ? Math.max(...nodes.map((n) => n.id)) + 1 : 1;
+  const parent = selectedNodeId
+    ? nodes.find((n) => n.id === selectedNodeId.id)
+    : nodes[0];
+
+  const offsetX = Math.random() * 150 - 75;
+  const offsetY = 150;
+
+  const newNode = {
+    id: newId,
+    label: `${newId}`,
+    x: parent ? parent.x + offsetX : 400,
+    y: parent ? parent.y + offsetY : 100,
+    parentId: parent ? parent.id : null,
   };
+
+  // update UI first
+  setNodes((prev) => [...prev, newNode]);
+
+  console.log("selectedNodeId:", selectedNodeId);
+  console.log("nodes:", nodes);
+  console.log("found parent:", parent);
+
+
+  // send POST request
+  fetch("http://localhost:8000/nodes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id: String(newNode.id),
+      label: newNode.label,
+      parent_id: newNode.parentId !== null ? String(newNode.parentId) : null,
+      // x: newNode.x,
+      // y: newNode.y,
+    }),
+  }).catch((err) => console.error("Error adding node:", err));
+};
+
 
   const handleDeleteNode = () => {
     if (!selectedNodeId) return;
