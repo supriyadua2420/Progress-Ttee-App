@@ -22,7 +22,6 @@ export default function TreeCanvas() {
 
         const res = await fetch("http://localhost:8000/nodes");
         const data = await res.json();
-        console.log("Fetched nodes:", data);
         const formatted = data.map( n => ({
           id: Number(n.id),
           label: n.label,
@@ -31,7 +30,6 @@ export default function TreeCanvas() {
           y: n.y ?? Math.random() * 600,
         }));
         setNodes(formatted);
-        console.log("Formatted nodes:", formatted);
 
       } catch (error) {
         console.error("Error fetching nodes:", error);
@@ -80,11 +78,6 @@ export default function TreeCanvas() {
   // update UI first
   setNodes((prev) => [...prev, newNode]);
 
-  console.log("selectedNodeId:", selectedNodeId);
-  console.log("nodes:", nodes);
-  console.log("found parent:", parent);
-
-
   // send POST request
   fetch("http://localhost:8000/nodes", {
     method: "POST",
@@ -103,13 +96,22 @@ export default function TreeCanvas() {
   const handleDeleteNode = () => {
     if (!selectedNodeId) return;
 
+     fetch(`http://localhost:8000/nodes/${String(selectedNodeId.id)}`, {
+      method: "DELETE",
+    }).catch((err) => console.error("Error deleting node:", err));
+
     const parentId = selectedNodeId.parentId;
 
-    const children = nodes.filter(n => n.parentId === selectedNodeId.id);
-    children.forEach(child => child.parentId = parentId);
+    const updatedNodes = nodes.map((n) => {
+        if(n.parentId === selectedNodeId.id){
+          return { ...n, parentId};
+       }
 
-    const updateNodes = nodes.filter(n => n.id !== selectedNodeId.id);
-    setNodes(updateNodes);
+       return n;
+      }  
+    ).filter((n) => n.id !== selectedNodeId.id)
+
+    setNodes(updatedNodes);
     setSelectedNodeId(null);
 
   };
