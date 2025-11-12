@@ -9,6 +9,8 @@ const initialNodes = [
   { id: 5, label: "5", x: 300, y: 400, parentId: 2 },
 ];
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 export default function TreeCanvas() {
   const containerRef = useRef(null);
   const [nodes, setNodes] = useState(initialNodes ?? []);
@@ -19,8 +21,7 @@ export default function TreeCanvas() {
   useEffect(() => {
     const fetchNodes = async () => {
       try {
-
-        const res = await fetch("http://localhost:8000/nodes");
+        const res = await fetch(`${API_URL}/nodes`)
         const data = await res.json();
         const formatted = data.map( n => ({
           id: Number(n.id),
@@ -78,7 +79,7 @@ export default function TreeCanvas() {
   // update UI first
   setNodes((prev) => [...prev, newNode]);
 
-  fetch("http://localhost:8000/nodes", {
+  fetch(`${API_URL}/nodes`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -95,7 +96,7 @@ export default function TreeCanvas() {
   const handleDeleteNode = () => {
     if (!selectedNodeId) return;
 
-    fetch(`http://localhost:8000/nodes/${String(selectedNodeId.id)}`, {
+    fetch(`${API_URL}/nodes/${String(selectedNodeId.id)}`, {
       method: "DELETE",
     }).catch((err) => console.error("Error deleting node:", err));
 
@@ -118,7 +119,7 @@ export default function TreeCanvas() {
   const handleRename = (nodeId, newLabel) => {
 
     const parentId = nodes.find(n => n.id === nodeId)?.parentId;
-    fetch(`http://localhost:8000/nodes/${String(selectedNodeId.id)}`, {
+    fetch(`${API_URL}/nodes/${String(selectedNodeId.id)}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
