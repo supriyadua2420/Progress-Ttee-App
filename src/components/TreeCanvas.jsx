@@ -57,7 +57,23 @@ export default function TreeCanvas() {
     );
   };
 
-  const handleMouseUp = () => setDraggingNode(null);
+  const handleMouseUp = () => {
+  if (draggingNode) {
+    fetch(`${API_URL}/nodes/${String(draggingNode.id)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        x: draggingNode.x,
+        y: draggingNode.y,
+      }),
+    }).catch((err) =>
+      console.error("Error updating node position:", err)
+    );
+  }
+
+  setDraggingNode(null);
+};
+
 
  const handleAddNode = () => {
   const newId = nodes.length ? Math.max(...nodes.map((n) => n.id)) + 1 : 1;
@@ -86,8 +102,8 @@ export default function TreeCanvas() {
       id: String(newNode.id),
       label: newNode.label,
       parent_id: newNode.parentId !== null ? String(newNode.parentId) : null,
-      // x: newNode.x,
-      // y: newNode.y,
+      x: newNode.x,
+      y: newNode.y,
     }),
   }).catch((err) => console.error("Error adding node:", err));
 };
