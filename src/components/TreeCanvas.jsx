@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import TreeNode from "./TreeNode.jsx";
+// import { version } from "os";
 
 const initialNodes = [
   { id: 1, label: "1", x: 400, y: 100, parentId: null },
@@ -10,9 +11,12 @@ const initialNodes = [
 ];
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const TREE_ID = "tree-1";
+const CLIENT_ID = crypto.randomUUID();
 
 export default function TreeCanvas() {
   const containerRef = useRef(null);
+  const wsRef = useRef(null);
   const [nodes, setNodes] = useState(initialNodes ?? []);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [draggingNode, setDraggingNode] = useState(null);
@@ -29,6 +33,7 @@ export default function TreeCanvas() {
           parentId : n.parent_id ? Number(n.parent_id) : null,
           x: n.x ?? Math.random() * 800,
           y: n.y ?? Math.random() * 600,
+          version: n.version ?? 1, 
         }));
         setNodes(formatted);
 
@@ -38,8 +43,42 @@ export default function TreeCanvas() {
     };
 
     fetchNodes();
-
   }, []);
+
+   useEffect(() => {
+      const ws = new WebSocket(`ws://localhost:8000/ws/trees/${TREE_ID}/${CLIENT_ID}`);
+
+      wsRef.current = ws;
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if(msg.type === "ERROR" && msg.message === "Version Conflict") {
+          setNodes(prev => prev.map(n => n.id === msg.node.id ? msg.node : n));
+          return;
+        }
+
+        // ✅ APPLY REMOTE UPDATE
+        if (msg.node) {
+          setNodes(prev =>
+            prev.map(n =>
+              n.id === Number(msg.node.id)
+                ? {
+                    ...n,
+                    ...msg.node,
+                    parentId: msg.node.parent_id
+                      ? Number(msg.node.parent_id)
+                      : null,
+                  }
+                : n
+            )
+          );
+        }
+    };
+
+    ws.onerror = (e) => console.error("WebSocket error:", e);
+    ws.onclose = () => console.log("WebSocket connection closed");
+
+    return () => ws.close();
+    }, []);
 
   const handleMouseDown = (e, node) => {
     setSelectedNodeId(node);
@@ -53,26 +92,28 @@ export default function TreeCanvas() {
     const y = e.clientY - rect.top;
 
     setNodes((prev) =>
-      prev.map((n) => (n.id === draggingNode.id ? { ...n, x, y } : n))
+      prev.map((n) => (n.id === draggingNode.id ? { ...n, x, y, version: (n.version || 1) + 1 } : n))
     );
   };
 
   const handleMouseUp = () => {
-  if (draggingNode) {
-    fetch(`${API_URL}/nodes/${String(draggingNode.id)}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    if (!draggingNode || !wsRef.current) return;
+
+    wsRef.current.send(JSON.stringify({
+
+      type: "NODE_MOVED",
+      treeId: TREE_ID,
+      clientId: CLIENT_ID,
+      payload: {
+        nodeId: String(draggingNode.id),
         x: draggingNode.x,
         y: draggingNode.y,
-      }),
-    }).catch((err) =>
-      console.error("Error updating node position:", err)
-    );
-  }
+        version: draggingNode.version || 1,
+      }
+    }));
 
-  setDraggingNode(null);
-};
+    setDraggingNode(null);
+  };
 
 
  const handleAddNode = () => {
@@ -134,22 +175,45 @@ export default function TreeCanvas() {
 
   const handleRename = (nodeId, newLabel) => {
 
-    const parentId = nodes.find(n => n.id === nodeId)?.parentId;
-    fetch(`${API_URL}/nodes/${String(selectedNodeId.id)}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: String(nodeId),
-        label: newLabel,
-        parent_id: parentId !== null ? String(parentId) : null,
-        // x: newNode.x,
-        // y: newNode.y,
-      }),
-    }).catch((err) => console.error("Error updating node:", err));
+    // const parentId = nodes.find(n => n.id === nodeId)?.parentId;
+    // fetch(`${API_URL}/nodes/${String(selectedNodeId.id)}`, {
+    //   method: "PUT",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify({
+    //     id: String(nodeId),
+    //     label: newLabel,
+    //     parent_id: parentId !== null ? String(parentId) : null,
+    //     // x: newNode.x,
+    //     // y: newNode.y,
+    //   }),
+    // }).catch((err) => console.error("Error updating node:", err));
 
-      setNodes((prev) =>
-        prev.map((n) => (n.id === nodeId ? {...n, label : newLabel} : n))
-      );
+    //   setNodes((prev) =>
+    //     prev.map((n) => (n.id === nodeId ? {...n, label : newLabel} : n))
+    //   );
+
+    const node = nodes.find(n => n.id === nodeId);
+    if(!node || !wsRef.current) return;
+
+    setNodes(prev =>
+    prev.map(n =>
+      n.id === nodeId
+        ? { ...n, label: newLabel, version: (n.version || 1) + 1 }
+        : n
+    )
+  );
+
+    wsRef.current.send(JSON.stringify({
+        type: "NODE_LABEL_UPDATED",
+        treeId: TREE_ID,
+        clientId: CLIENT_ID,
+        payload: {
+          nodeId: String(nodeId),
+          label: newLabel,
+          version: node.version|| 1,
+        }
+    }));
+
 
       setEditingNodeId(null);
   };
