@@ -51,6 +51,7 @@ export default function TreeCanvas() {
       wsRef.current = ws;
       ws.onmessage = (event) => {
         const msg = JSON.parse(event.data);
+        console.log("WS RECEIVED:", msg); 
         if(msg.type === "ERROR" && msg.message === "Version Conflict") {
           setNodes(prev => prev.map(n => n.id === msg.node.id ? msg.node : n));
           return;
@@ -67,6 +68,7 @@ export default function TreeCanvas() {
                     parentId: msg.node.parent_id
                       ? Number(msg.node.parent_id)
                       : null,
+                    version: msg.node.version, 
                   }
                 : n
             )
@@ -92,12 +94,16 @@ export default function TreeCanvas() {
     const y = e.clientY - rect.top;
 
     setNodes((prev) =>
-      prev.map((n) => (n.id === draggingNode.id ? { ...n, x, y, version: (n.version || 1) + 1 } : n))
+      prev.map((n) => (n.id === draggingNode.id ? { ...n, x, y } : n))
     );
   };
 
   const handleMouseUp = () => {
     if (!draggingNode || !wsRef.current) return;
+
+     const latestNode = nodes.find(n => n.id === draggingNode.id);
+     if (!latestNode) return;
+
 
     wsRef.current.send(JSON.stringify({
 
@@ -105,10 +111,10 @@ export default function TreeCanvas() {
       treeId: TREE_ID,
       clientId: CLIENT_ID,
       payload: {
-        nodeId: String(draggingNode.id),
-        x: draggingNode.x,
-        y: draggingNode.y,
-        version: draggingNode.version || 1,
+        nodeId: String(latestNode.id),
+        x: latestNode.x,
+        y: latestNode.y,
+        version: latestNode.version,
       }
     }));
 
@@ -188,17 +194,13 @@ export default function TreeCanvas() {
     //   }),
     // }).catch((err) => console.error("Error updating node:", err));
 
-    //   setNodes((prev) =>
-    //     prev.map((n) => (n.id === nodeId ? {...n, label : newLabel} : n))
-    //   );
-
     const node = nodes.find(n => n.id === nodeId);
     if(!node || !wsRef.current) return;
 
     setNodes(prev =>
     prev.map(n =>
       n.id === nodeId
-        ? { ...n, label: newLabel, version: (n.version || 1) + 1 }
+        ? { ...n, label: newLabel}
         : n
     )
   );
@@ -210,10 +212,9 @@ export default function TreeCanvas() {
         payload: {
           nodeId: String(nodeId),
           label: newLabel,
-          version: node.version|| 1,
+          version: node.version,
         }
     }));
-
 
       setEditingNodeId(null);
   };
