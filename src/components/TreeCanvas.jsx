@@ -151,6 +151,7 @@ export default function TreeCanvas() {
       parent_id: newNode.parentId !== null ? String(newNode.parentId) : null,
       x: newNode.x,
       y: newNode.y,
+      tree_id: TREE_ID,
     }),
   }).catch((err) => console.error("Error adding node:", err));
 };
