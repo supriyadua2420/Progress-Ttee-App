@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import TreeNode from "./TreeNode.jsx";
+// import { version } from "os";
 
 const initialNodes = [
   { id: 1, label: "1", x: 400, y: 100, parentId: null },
@@ -10,9 +11,12 @@ const initialNodes = [
 ];
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const TREE_ID = "tree-1";
+const CLIENT_ID = crypto.randomUUID();
 
 export default function TreeCanvas() {
   const containerRef = useRef(null);
+  const wsRef = useRef(null);
   const [nodes, setNodes] = useState(initialNodes ?? []);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [draggingNode, setDraggingNode] = useState(null);
@@ -29,6 +33,7 @@ export default function TreeCanvas() {
           parentId : n.parent_id ? Number(n.parent_id) : null,
           x: n.x ?? Math.random() * 800,
           y: n.y ?? Math.random() * 600,
+          version: n.version ?? 1, 
         }));
         setNodes(formatted);
 
@@ -38,8 +43,39 @@ export default function TreeCanvas() {
     };
 
     fetchNodes();
-
   }, []);
+
+   useEffect(() => {
+      const ws = new WebSocket(`ws://localhost:8000/ws/trees/${TREE_ID}/${CLIENT_ID}`);
+
+      wsRef.current = ws;
+      ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      console.log("WS RECEIVED:", msg);
+
+      if (msg.node) {
+        const serverNode = {
+          ...msg.node,
+          id: Number(msg.node.id),
+          parentId: msg.node.parent_id
+            ? Number(msg.node.parent_id)
+            : null,
+        };
+
+        setNodes(prev =>
+          prev.map(n =>
+            n.id === serverNode.id ? serverNode : n
+          )
+          );
+        }
+
+    };
+
+    ws.onerror = (e) => console.error("WebSocket error:", e);
+    ws.onclose = () => console.log("WebSocket connection closed");
+
+    return () => ws.close();
+    }, []);
 
   const handleMouseDown = (e, node) => {
     setSelectedNodeId(node);
@@ -58,21 +94,27 @@ export default function TreeCanvas() {
   };
 
   const handleMouseUp = () => {
-  if (draggingNode) {
-    fetch(`${API_URL}/nodes/${String(draggingNode.id)}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        x: draggingNode.x,
-        y: draggingNode.y,
-      }),
-    }).catch((err) =>
-      console.error("Error updating node position:", err)
-    );
-  }
+    if (!draggingNode || !wsRef.current) return;
 
-  setDraggingNode(null);
-};
+     const latestNode = nodes.find(n => n.id === draggingNode.id);
+     if (!latestNode) return;
+
+
+    wsRef.current.send(JSON.stringify({
+
+      type: "NODE_MOVED",
+      treeId: TREE_ID,
+      clientId: CLIENT_ID,
+      payload: {
+        nodeId: String(latestNode.id),
+        x: latestNode.x,
+        y: latestNode.y,
+        version: latestNode.version,
+      }
+    }));
+
+    setDraggingNode(null);
+  };
 
 
  const handleAddNode = () => {
@@ -104,6 +146,7 @@ export default function TreeCanvas() {
       parent_id: newNode.parentId !== null ? String(newNode.parentId) : null,
       x: newNode.x,
       y: newNode.y,
+      tree_id: TREE_ID,
     }),
   }).catch((err) => console.error("Error adding node:", err));
 };
@@ -134,22 +177,40 @@ export default function TreeCanvas() {
 
   const handleRename = (nodeId, newLabel) => {
 
-    const parentId = nodes.find(n => n.id === nodeId)?.parentId;
-    fetch(`${API_URL}/nodes/${String(selectedNodeId.id)}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: String(nodeId),
-        label: newLabel,
-        parent_id: parentId !== null ? String(parentId) : null,
-        // x: newNode.x,
-        // y: newNode.y,
-      }),
-    }).catch((err) => console.error("Error updating node:", err));
+    // const parentId = nodes.find(n => n.id === nodeId)?.parentId;
+    // fetch(`${API_URL}/nodes/${String(selectedNodeId.id)}`, {
+    //   method: "PUT",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify({
+    //     id: String(nodeId),
+    //     label: newLabel,
+    //     parent_id: parentId !== null ? String(parentId) : null,
+    //     // x: newNode.x,
+    //     // y: newNode.y,
+    //   }),
+    // }).catch((err) => console.error("Error updating node:", err));
 
-      setNodes((prev) =>
-        prev.map((n) => (n.id === nodeId ? {...n, label : newLabel} : n))
-      );
+    const node = nodes.find(n => n.id === nodeId);
+    if(!node || !wsRef.current) return;
+
+    setNodes(prev =>
+    prev.map(n =>
+      n.id === nodeId
+        ? { ...n, label: newLabel}
+        : n
+    )
+  );
+
+    wsRef.current.send(JSON.stringify({
+        type: "NODE_LABEL_UPDATED",
+        treeId: TREE_ID,
+        clientId: CLIENT_ID,
+        payload: {
+          nodeId: String(nodeId),
+          label: newLabel,
+          version: node.version,
+        }
+    }));
 
       setEditingNodeId(null);
   };
