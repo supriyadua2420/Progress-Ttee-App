@@ -50,30 +50,25 @@ export default function TreeCanvas() {
 
       wsRef.current = ws;
       ws.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        console.log("WS RECEIVED:", msg); 
-        if(msg.type === "ERROR" && msg.message === "Version Conflict") {
-          setNodes(prev => prev.map(n => n.id === msg.node.id ? msg.node : n));
-          return;
-        }
+      const msg = JSON.parse(event.data);
+      console.log("WS RECEIVED:", msg);
 
-        // ✅ APPLY REMOTE UPDATE
-        if (msg.node) {
-          setNodes(prev =>
-            prev.map(n =>
-              n.id === Number(msg.node.id)
-                ? {
-                    ...n,
-                    ...msg.node,
-                    parentId: msg.node.parent_id
-                      ? Number(msg.node.parent_id)
-                      : null,
-                    version: msg.node.version, 
-                  }
-                : n
-            )
+      if (msg.node) {
+        const serverNode = {
+          ...msg.node,
+          id: Number(msg.node.id),
+          parentId: msg.node.parent_id
+            ? Number(msg.node.parent_id)
+            : null,
+        };
+
+        setNodes(prev =>
+          prev.map(n =>
+            n.id === serverNode.id ? serverNode : n
+          )
           );
         }
+
     };
 
     ws.onerror = (e) => console.error("WebSocket error:", e);
