@@ -14,6 +14,16 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const TREE_ID = "tree-1";
 const CLIENT_ID = crypto.randomUUID();
 
+const getWebSocketUrl = () => {
+  const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+  if (baseUrl.startsWith("https")) {
+    return baseUrl.replace("https", "wss");
+  } else {
+    return baseUrl.replace("http", "ws");
+  }
+};
+
 export default function TreeCanvas() {
   const containerRef = useRef(null);
   const wsRef = useRef(null);
@@ -45,11 +55,13 @@ export default function TreeCanvas() {
     fetchNodes();
   }, []);
 
-   useEffect(() => {
-      const ws = new WebSocket(`ws://localhost:8000/ws/trees/${TREE_ID}/${CLIENT_ID}`);
+  useEffect(() => {
+    const wsUrl = `${getWebSocketUrl()}/ws/trees/${TREE_ID}/${CLIENT_ID}`;
+    const ws = new WebSocket(wsUrl);
 
-      wsRef.current = ws;
-      ws.onmessage = (event) => {
+    wsRef.current = ws;
+
+    ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       console.log("WS RECEIVED:", msg);
 
@@ -66,16 +78,15 @@ export default function TreeCanvas() {
           prev.map(n =>
             n.id === serverNode.id ? serverNode : n
           )
-          );
-        }
-
+        );
+      }
     };
 
     ws.onerror = (e) => console.error("WebSocket error:", e);
     ws.onclose = () => console.log("WebSocket connection closed");
 
     return () => ws.close();
-    }, []);
+  }, []);
 
   const handleMouseDown = (e, node) => {
     setSelectedNodeId(node);
