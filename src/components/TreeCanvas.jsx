@@ -14,6 +14,16 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const TREE_ID = "tree-1";
 const CLIENT_ID = crypto.randomUUID();
 
+const getWebSocketUrl = () => {
+  const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+  if (baseUrl.startsWith("https")) {
+    return baseUrl.replace("https", "wss");
+  } else {
+    return baseUrl.replace("http", "ws");
+  }
+};
+
 export default function TreeCanvas() {
   const containerRef = useRef(null);
   const wsRef = useRef(null);
@@ -45,11 +55,13 @@ export default function TreeCanvas() {
     fetchNodes();
   }, []);
 
-   useEffect(() => {
-      const ws = new WebSocket(`ws://localhost:8000/ws/trees/${TREE_ID}/${CLIENT_ID}`);
+  useEffect(() => {
+    const wsUrl = `${getWebSocketUrl()}/ws/trees/${TREE_ID}/${CLIENT_ID}`;
+    const ws = new WebSocket(wsUrl);
 
-      wsRef.current = ws;
-      ws.onmessage = (event) => {
+    wsRef.current = ws;
+
+    ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       console.log("WS RECEIVED:", msg);
 
@@ -66,16 +78,15 @@ export default function TreeCanvas() {
           prev.map(n =>
             n.id === serverNode.id ? serverNode : n
           )
-          );
-        }
-
+        );
+      }
     };
 
     ws.onerror = (e) => console.error("WebSocket error:", e);
     ws.onclose = () => console.log("WebSocket connection closed");
 
     return () => ws.close();
-    }, []);
+  }, []);
 
   const handleMouseDown = (e, node) => {
     setSelectedNodeId(node);
@@ -234,15 +245,15 @@ export default function TreeCanvas() {
           position: "relative",
           background: "linear-gradient(135deg, #f8f9fa 0%, #f1f3f6 100%)",
           borderRadius: "16px",
-          overflow: "hidden",
+          overflow: "auto",
           boxShadow: "inset 0 0 20px rgba(0,0,0,0.05)",
         }}
       >
         <svg
           style={{
             position: "absolute",
-            width: "100%",
-            height: "100%",
+            width: "2000px",
+            height: "2000px",
             top: 0,
             left: 0,
             pointerEvents: "none",
