@@ -5,6 +5,7 @@ import TreeCanvas from "./components/TreeCanvas.jsx";
 export default function App() {
   const [projects, setProjects] = useState([]);
   const [activeProjectId, setActiveProjectId] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const handleCreateProject = () => {
     const newProject = {
@@ -23,13 +24,23 @@ export default function App() {
   const activeProject = projects.find((p) => p.id === activeProjectId);
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 relative">
       <Sidebar
         projects={projects}
         onCreateProject={handleCreateProject}
         onSelectProject={handleSelectProject}
         activeProjectId={activeProjectId}
+         isOpen={isSidebarOpen}
       />
+
+      {/* Toggle Button */}
+      <button
+        onClick={() => setIsSidebarOpen((open) => !open)}
+        className="absolute left-2 top-4 z-20 bg-blue-500 text-white w-8 h-8 rounded-full shadow-md"
+      >
+        {isSidebarOpen ? "<" : ">"}
+      </button>
+
       <div className="flex-1 p-4">
         {activeProject ? (
           <TreeCanvas project={activeProject} />

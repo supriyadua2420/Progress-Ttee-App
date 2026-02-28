@@ -234,15 +234,15 @@ export default function TreeCanvas() {
           position: "relative",
           background: "linear-gradient(135deg, #f8f9fa 0%, #f1f3f6 100%)",
           borderRadius: "16px",
-          overflow: "hidden",
+          overflow: "auto",
           boxShadow: "inset 0 0 20px rgba(0,0,0,0.05)",
         }}
       >
         <svg
           style={{
             position: "absolute",
-            width: "100%",
-            height: "100%",
+            width: "2000px",
+            height: "2000px",
             top: 0,
             left: 0,
             pointerEvents: "none",
